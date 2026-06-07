@@ -1,4 +1,6 @@
 // modernwhowas.js  
+
+print(0, "script who.js has been loaded correctly!");
   
 var DB_FILE = "modernwhowas.db";  
 var MAX_ENTRIES = 1000;  
@@ -11,14 +13,14 @@ function onLoad() {
 }  
   
 // Store user data when they join  
-function onJoin(user) {  
+function onJoin(userobj) {  
     var data = loadDatabase();  
       
     var entry = {  
-        name: user.name,  
-        version: user.version,  
-        externalIp: user.externalIp,  
-        localIp: user.localIp,  
+        name: userobj.name,  
+        version: userobj.version,  
+        externalIp: userobj.externalIp,  
+        localIp: userobj.localIp,  
         timestamp: Server.Time  
     };  
       
@@ -34,15 +36,15 @@ function onJoin(user) {
 }  
   
 // Search command  
-function onCommand(user, command, args) {  
+function onCommand(userobj, command, args) {  
     if (command === "/who") {  
-        searchDatabase(user, args);  
+        searchDatabase(userobj, args);  
         return true;  
     }  
     return false;  
 }  
   
-function searchDatabase(user, query) {  
+function searchDatabase(userobj, query) {  
     var data = loadDatabase();  
     var results = [];  
     var search = query.toLowerCase();  
@@ -59,13 +61,13 @@ function searchDatabase(user, query) {
     }  
       
     if (results.length === 0) {  
-        user.sendText("No results found for: " + query);  
+        userobj.sendText("No results found for: " + query);  
     } else {  
-        user.sendText("Found " + results.length + " result(s):");  
+        userobj.sendText("Found " + results.length + " result(s):");  
         for (var i = 0; i < Math.min(results.length, 50); i++) {  
             var entry = results[i];  
             var time = new Date(entry.timestamp * 1000).toLocaleString();  
-            user.sendText("Name: " + entry.name +   
+            userobj.sendText("Name: " + entry.name +   
                          " | Version: " + entry.version +  
                          " | External IP: " + entry.externalIp +  
                          " | Local IP: " + entry.localIp +  
