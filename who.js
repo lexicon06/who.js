@@ -1,85 +1,94 @@
-// modernwhowas.js  
-  
-var DB_FILE = "modernwhowas.json";  
-var MAX_ENTRIES = 1000;  
-  
-// Initialize database on script load  
-function onLoad() {  
-    if (!File.exists(DB_FILE)) {  
-        File.save(DB_FILE, JSON.stringify([]));  
-    }  
-}  
-  
-// Store user data when they join  
-function onJoin(userobj) {  
-    var data = loadDatabase();  
-      
-    var entry = {  
-        name: userobj.name,  
-        version: userobj.version,  
-        externalIp: userobj.externalIp,  
-        localIp: userobj.localIp,  
-        timestamp: Server.Time  
-    };  
-      
-    data.push(entry);  
-      
-    if (data.length > MAX_ENTRIES) {  
-        data = data.slice(-MAX_ENTRIES);  
-    }  
-      
-    saveDatabase(data);  
-}  
-  
-// Search command  
-function onCommand(userobj, command, args) {  
-    if (command === "/who") {  
-        searchDatabase(userobj, args);  
-        return true;  
-    }  
-    return false;  
-}  
-  
-function searchDatabase(userobj, query) {  
-    var data = loadDatabase();  
-    var results = [];  
-    var search = query.toLowerCase();  
-      
-    for (var i = 0; i < data.length; i++) {  
-        var entry = data[i];  
-          
-        if (entry.name.toLowerCase().indexOf(search) !== -1 ||  
-            entry.externalIp.indexOf(search) !== -1 ||  
-            entry.localIp.indexOf(search) !== -1) {  
-            results.push(entry);  
-        }  
-    }  
-      
-    if (results.length === 0) {  
-        print(userobj, "No results found for: " + query);  
-    } else {  
-        print(userobj, "Found " + results.length + " result(s):");  
-        for (var i = 0; i < Math.min(results.length, 50); i++) {  
-            var entry = results[i];  
-            var time = new Date(entry.timestamp * 1000).toLocaleString();  
-            print(userobj, "Name: " + entry.name +   
-                         " | Version: " + entry.version +  
-                         " | External IP: " + entry.externalIp +  
-                         " | Local IP: " + entry.localIp +  
-                         " | Time: " + time);  
-        }  
-    }  
-}  
-  
-function loadDatabase() {  
-    try {  
-        var content = File.load(DB_FILE);  
-        return JSON.parse(content);  
-    } catch (e) {  
-        return [];  
-    }  
-}  
-  
-function saveDatabase(data) {  
-    File.save(DB_FILE, JSON.stringify(data));  
+// modernwhowas.js
+
+var dbName = "whowas.db";
+
+function onLoad() {
+    var sql = new Sql();
+    sql.open(dbName);
+    if (sql.connected) {
+        var query = new Query("CREATE TABLE IF NOT EXISTS whowas (id INTEGER PRIMARY KEY AUTOINCREMENT, name NVARCHAR(255), version NVARCHAR(50), externalIp NVARCHAR(50), localIp NVARCHAR(50), timestamp INTEGER)");
+        sql.query(query);
+        sql.close();
+    }
 }
+
+function onJoin(userobj) {
+    var sql = new Sql();
+    sql.open(dbName);
+    if (sql.connected) {
+        // Keep only last 1000 entries
+        var countQuery = new Query("SELECT COUNT(*) as count FROM whowas");
+        sql.query(countQuery);
+        if (sql.read) {
+            var count = sql.value("count");
+            if (count >= 1000) {
+                sql.query(new Query("DELETE FROM whowas WHERE id IN (SELECT id FROM whowas ORDER BY id ASC LIMIT " + (count - 999) + ")"));
+            }
+        }
+
+        var insertQuery = new Query(
+            "INSERT INTO whowas (name, version, externalIp, localIp, timestamp) VALUES ({0}, {1}, {2}, {3}, {4})",
+            userobj.name,
+            userobj.version,
+            userobj.externalIp,
+            userobj.localIp,
+            Server.Time
+        );
+        sql.query(insertQuery);
+        sql.close();
+    }
+}
+
+function onCommand(userobj, command, tUser, args) {
+    if (command === "/who") {
+        searchDatabase(userobj, args);
+        return true;
+    }
+    return false;
+}
+
+function searchDatabase(userobj, query) {
+    var sql = new Sql();
+    sql.open(dbName);
+    if (!sql.connected) {
+        print(userobj, "Error connecting to database.");
+        return;
+    }
+
+    var searchQuery = new Query(
+        "SELECT * FROM whowas WHERE name LIKE {0} OR externalIp LIKE {1} OR localIp LIKE {2} ORDER BY id DESC LIMIT 50",
+        "%" + query + "%",
+        "%" + query + "%",
+        "%" + query + "%"
+    );
+    sql.query(searchQuery);
+
+    var results = [];
+    while (sql.read) {
+        results.push({
+            name: sql.value("name"),
+            version: sql.value("version"),
+            externalIp: sql.value("externalIp"),
+            localIp: sql.value("localIp"),
+            timestamp: sql.value("timestamp")
+        });
+    }
+    sql.close();
+
+    if (results.length === 0) {
+        print(userobj, "No results found for: " + query);
+    } else {
+        print(userobj, "Found " + results.length + " result(s):");
+        for (var i = 0; i < results.length; i++) {
+            var entry = results[i];
+            var time = new Date(entry.timestamp * 1000).toLocaleString();
+            print(userobj, "Name: " + entry.name +
+                " | Version: " + entry.version +
+                " | External IP: " + entry.externalIp +
+                " | Local IP: " + entry.localIp +
+                " | Time: " + time);
+        }
+    }
+}
+
+onLoad();
