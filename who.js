@@ -2,6 +2,10 @@
 
 var dbName = "whowas.db";
 
+function getCurrentTimestamp() {
+    return Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+}
+
 function onLoad() {
     var sql = new Sql();
     sql.open(dbName);
@@ -16,6 +20,8 @@ function onJoin(userobj) {
     var sql = new Sql();
     sql.open(dbName);
     if (sql.connected) {
+        var currentTime = getCurrentTimestamp();
+        
         // Check if this IP combo already exists
         var checkQuery = new Query(
             "SELECT id FROM whowas WHERE externalIp = {0} AND localIp = {1}",
@@ -31,7 +37,7 @@ function onJoin(userobj) {
                 "UPDATE whowas SET name = {0}, version = {1}, timestamp = {2} WHERE id = {3}",
                 userobj.name,
                 userobj.version,
-                Server.Time,
+                currentTime,
                 existingId
             ));
         } else {
@@ -53,7 +59,7 @@ function onJoin(userobj) {
                 userobj.version,
                 userobj.externalIp,
                 userobj.localIp,
-                Server.Time
+                currentTime
             ));
         }
 
@@ -67,6 +73,12 @@ function onCommand(userobj, command, tUser, args) {
         return true;
     }
     return false;
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) return "Unknown";
+    var date = new Date(timestamp * 1000);
+    return date.toLocaleString();
 }
 
 function searchDatabase(userobj, query) {
@@ -103,7 +115,7 @@ function searchDatabase(userobj, query) {
         print(userobj, "Found " + results.length + " result(s):");
         for (var i = 0; i < results.length; i++) {
             var entry = results[i];
-            var time = new Date(entry.timestamp * 1000).toLocaleString();
+            var time = formatTimestamp(entry.timestamp);
             print(userobj, "Name: " + entry.name +
                 " | Version: " + entry.version +
                 " | External IP: " + entry.externalIp +
