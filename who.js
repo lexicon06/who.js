@@ -116,11 +116,11 @@ function searchDatabase(userobj, query) {
         for (var i = 0; i < results.length; i++) {
             var entry = results[i];
             var time = formatTimestamp(entry.timestamp);
-            print(userobj, "Name: " + entry.name +
-                " | Version: " + entry.version +
-                " | External IP: " + entry.externalIp +
-                " | Local IP: " + entry.localIp +
-                " | Time: " + time);
+            print(userobj, "Name: " + entry.name);
+            print(userobj, " | Version: " + entry.version);
+            print(userobj, " | External IP: " + entry.externalIp);
+            print(userobj, " | Local IP: " + entry.localIp);
+            print(userobj, " | Time: " + time);
         }
     }
 }
