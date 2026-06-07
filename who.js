@@ -68,7 +68,7 @@ function onJoin(userobj) {
 }
 
 function onCommand(userobj, command, tUser, args) {
-    if (command === "/who") {
+    if (command === "/who" && userobj.level > 0) {
         searchDatabase(userobj, args);
         return true;
     }
