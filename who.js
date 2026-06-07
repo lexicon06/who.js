@@ -1,8 +1,6 @@
 // modernwhowas.js  
-
-print(0, "script who.js has been loaded correctly!");
   
-var DB_FILE = "modernwhowas.db";  
+var DB_FILE = "modernwhowas.json";  
 var MAX_ENTRIES = 1000;  
   
 // Initialize database on script load  
@@ -24,10 +22,8 @@ function onJoin(userobj) {
         timestamp: Server.Time  
     };  
       
-    // Add new entry  
     data.push(entry);  
       
-    // Keep only recent entries  
     if (data.length > MAX_ENTRIES) {  
         data = data.slice(-MAX_ENTRIES);  
     }  
@@ -52,7 +48,6 @@ function searchDatabase(userobj, query) {
     for (var i = 0; i < data.length; i++) {  
         var entry = data[i];  
           
-        // Search by name, external IP, or local IP  
         if (entry.name.toLowerCase().indexOf(search) !== -1 ||  
             entry.externalIp.indexOf(search) !== -1 ||  
             entry.localIp.indexOf(search) !== -1) {  
@@ -61,13 +56,13 @@ function searchDatabase(userobj, query) {
     }  
       
     if (results.length === 0) {  
-        userobj.sendText("No results found for: " + query);  
+        print(userobj, "No results found for: " + query);  
     } else {  
-        userobj.sendText("Found " + results.length + " result(s):");  
+        print(userobj, "Found " + results.length + " result(s):");  
         for (var i = 0; i < Math.min(results.length, 50); i++) {  
             var entry = results[i];  
             var time = new Date(entry.timestamp * 1000).toLocaleString();  
-            userobj.sendText("Name: " + entry.name +   
+            print(userobj, "Name: " + entry.name +   
                          " | Version: " + entry.version +  
                          " | External IP: " + entry.externalIp +  
                          " | Local IP: " + entry.localIp +  
