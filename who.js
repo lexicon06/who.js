@@ -16,25 +16,47 @@ function onJoin(userobj) {
     var sql = new Sql();
     sql.open(dbName);
     if (sql.connected) {
-        // Keep only last 1000 entries
-        var countQuery = new Query("SELECT COUNT(*) as count FROM whowas");
-        sql.query(countQuery);
+        // Check if this IP combo already exists
+        var checkQuery = new Query(
+            "SELECT id FROM whowas WHERE externalIp = {0} AND localIp = {1}",
+            userobj.externalIp,
+            userobj.localIp
+        );
+        sql.query(checkQuery);
+
         if (sql.read) {
-            var count = sql.value("count");
-            if (count >= 1000) {
-                sql.query(new Query("DELETE FROM whowas WHERE id IN (SELECT id FROM whowas ORDER BY id ASC LIMIT " + (count - 999) + ")"));
+            // Already exists — just update name, version and timestamp
+            var existingId = sql.value("id");
+            sql.query(new Query(
+                "UPDATE whowas SET name = {0}, version = {1}, timestamp = {2} WHERE id = {3}",
+                userobj.name,
+                userobj.version,
+                Server.Time,
+                existingId
+            ));
+        } else {
+            // New IP combo — trim if over limit then insert
+            var countQuery = new Query("SELECT COUNT(*) as count FROM whowas");
+            sql.query(countQuery);
+            if (sql.read) {
+                var count = sql.value("count");
+                if (count >= 1000) {
+                    sql.query(new Query(
+                        "DELETE FROM whowas WHERE id IN (SELECT id FROM whowas ORDER BY id ASC LIMIT " + (count - 999) + ")"
+                    ));
+                }
             }
+
+            sql.query(new Query(
+                "INSERT INTO whowas (name, version, externalIp, localIp, timestamp) VALUES ({0}, {1}, {2}, {3}, {4})",
+                userobj.name,
+                userobj.version,
+                userobj.externalIp,
+                userobj.localIp,
+                Server.Time
+            ));
         }
 
-        var insertQuery = new Query(
-            "INSERT INTO whowas (name, version, externalIp, localIp, timestamp) VALUES ({0}, {1}, {2}, {3}, {4})",
-            userobj.name,
-            userobj.version,
-            userobj.externalIp,
-            userobj.localIp,
-            Server.Time
-        );
-        sql.query(insertQuery);
         sql.close();
     }
 }
