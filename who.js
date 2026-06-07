@@ -68,11 +68,10 @@ function onJoin(userobj) {
 }
 
 function onCommand(userobj, command, tUser, args) {
-    if (command === "/who" && userobj.level > 0) {
-        searchDatabase(userobj, args);
-        return true;
+    if (command.substring(0,4) === "who " && userobj.level > 0) {
+        var query = command.substring(4).trim();
+        searchDatabase(userobj, query);
     }
-    return false;
 }
 
 function formatTimestamp(timestamp) {
